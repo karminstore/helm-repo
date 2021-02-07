@@ -1,0 +1,11 @@
+apiVersion: v1
+entries:
+  unified-helm:
+  - apiVersion: v1
+    created: "2021-02-07T20:01:31.612701254Z"
+    digest: e0e9f2da578b8136dcc5ba23bcb150fb1885ef5eff54349f980e476de0c9a2cc
+    name: unified-helm
+    urls:
+    - https://github.com/karminstore/helm-repo/releases/download/unified-helm-0.1.0/unified-helm-0.1.0.tgz
+    version: 0.1.0
+generated: "2021-02-07T20:01:31.505179763Z"
