@@ -1,0 +1,14 @@
+{{- $parent_chart_name := regexReplaceAll (printf "-%s$" .Release.Namespace) .Release.Name "" }}
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+ name: {{ $parent_chart_name }}
+spec:
+ scaleTargetRef:
+   apiVersion: apps/v1
+   kind: Deployment
+   name: {{ $parent_chart_name }}
+ minReplicas: {{ template "resources.min_replicas" . }}
+ maxReplicas: {{ template "resources.max_replicas" . }}
+ targetCPUUtilizationPercentage: 80

@@ -1,0 +1,118 @@
+{{- $dot := . }}
+{{- $parent_chart_name := regexReplaceAll (printf "-%s$" .Release.Namespace) .Release.Name "" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: {{ $parent_chart_name }}
+    release: {{ .Release.Name | quote }}
+  name: {{ $parent_chart_name }}
+spec:
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      service: {{ $parent_chart_name }}
+      release: {{ .Release.Name | quote }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        configSHA256: {{ .Files.Get "templates/_config.tpl" | sha256sum }}
+{{- /* // LINKERD CONFIGS
+        linkerd.io/inject: enabled
+        config.linkerd.io/skip-outbound-ports: "4222"
+{{- if eq (lower (toString .Values.global.tracing )) "true" }}
+        config.linkerd.io/trace-collector: linkerd-collector.linkerd:55678
+        config.alpha.linkerd.io/trace-collector-service-account: linkerd-collector
+{{- end }}
+// LINKERD CONFIGS END */}}
+      labels:
+        service: {{ $parent_chart_name }}
+        release: {{ .Release.Name | quote }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: service
+                  operator: In
+                  values:
+                  - {{ .Chart.Name }}
+                - key: release
+                  operator: In
+                  values:
+                  - {{ .Release.Name | quote }}
+              topologyKey: "kubernetes.io/hostname"
+{{- if eq ( kindOf .Values.global.initContainers ) "slice" }}
+{{- include "containers.base" (dict "root" $dot "containers" $dot.Values.global.initContainers "kind" "initContainers" "chartName" $parent_chart_name) | indent 6 }}
+{{- end }}
+{{- if eq ( kindOf .Values.global.containers ) "slice" }}
+{{- include "containers.base" (dict "root" $dot "containers" $dot.Values.global.containers "kind" "containers" "chartName" $parent_chart_name "additional" (include "containers.additional" $dot)) | indent 6 }}
+{{- end }}
+{{- if .Values.global.image.pullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.global.image.pullSecrets }}
+{{- end }}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: {{ printf "%s-config" $parent_chart_name }}
+        configMap:
+          name: {{ printf "%s-config" $parent_chart_name }}
+---
+{{- if .Values.global.ports }}
+  {{- if contains "true" (toString .Values.global.ports) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $parent_chart_name }}
+spec:
+  type: ClusterIP
+  selector:
+    service: {{ $parent_chart_name }}
+  ports:
+    {{- range $key, $value := .Values.global.ports }}
+      {{- if eq (lower (toString $value )) "true" }}
+  - port: {{ index $dot.Values.server.ports $key }}
+    name: {{ $key }}
+    protocol: TCP
+      {{- end }}
+    {{- end }}
+    {{- if contains "true" (toString .Values.global.serviceMonitor.enabled) }}
+  - port: {{ .Values.global.serviceMonitor.port }}
+    name: {{ .Values.global.serviceMonitor.portName }}
+    protocol: TCP
+    {{- end }}
+  {{- end }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-config" $parent_chart_name }}
+data:
+  config.yml: |
+    {{- include "app_conf" . | indent 4 }}
+---
+{{- if contains "true" (toString .Values.global.serviceMonitor.enabled) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: "{{ $parent_chart_name }}-service-monitor"
+  labels:
+    service: "{{ $parent_chart_name }}"
+spec:
+  selector:
+    matchLabels:
+      service: "{{ $parent_chart_name }}"
+  endpoints:
+  - port: {{ .Values.global.serviceMonitor.portName }}
+    interval: {{ .Values.global.serviceMonitor.interval }}
+{{- end }}

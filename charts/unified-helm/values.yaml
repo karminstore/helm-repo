@@ -1,0 +1,96 @@
+global:
+  config:                         # configmap
+    app:
+      log: info
+
+  ports:                                  # usage: true/false also line can be commented
+    http: false
+    grpc: false
+
+  # initContainers:
+  # - command:
+  #   - /bin/sh
+  #   - echo 1
+  # - command:
+  #   - /bin/sh
+  #   - echo 2
+
+  containers:
+  - command:
+    - ./podinfo
+
+  # tracing: false
+
+  serviceMonitor:
+    enabled: false
+    interval: 15s
+    port: 9080
+    portName: metrics
+
+  image:
+    registry: myregistry.example.com
+    repository: helm/podinfo
+    tag: master
+    digest:
+    pullSecrets:
+    pullPolicy: "Always"
+
+
+server:
+  ports:
+    http: "80"
+    grpc: "8080"
+
+
+services:
+  psql-secret:
+  - user
+  - pass
+  psql-configMap:
+  - host
+  - port
+  - db
+  s3:
+    file-secret:
+    - accessKeyId
+    - secretAccessKey
+    - bucket
+    - region
+    - url
+    image-secret:
+    - accessKeyId
+    - secretAccessKey
+    - bucket
+    - region
+    - url
+    video-secret:
+    - accessKeyId
+    - secretAccessKey
+    - bucket
+    - region
+    - url
+
+microservices:
+  customerService: customer-service
+
+resources:
+  requests:
+    cpu:
+      production: "150m"
+      default: "1m"
+    memory:
+      production: "250Mi"
+      default: "1Mi"
+  limits:
+    cpu:
+      production: "1"
+      default: "100m"
+    memory:
+      production: "1Gi"
+      default: "100Mi"
+  min_replicas:
+    default: 2
+    production: 3
+  max_replicas:
+    default: 3
+    production: 20
