@@ -1,0 +1,36 @@
+{{- $parent_chart_name := regexReplaceAll (printf "-%s$" .Release.Namespace) .Release.Name "" }}
+{{- if contains "true" (toString .Values.global.ingress.enabled) }}
+---
+{{/* apiVersion: networking.k8s.io/v1 */}}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $parent_chart_name }}
+  annotations:
+{{ toYaml .Values.global.ingress.annotations | indent 4 }}
+  {{- if contains "true" (toString .Values.global.ingress.rewriteTarget.enabled) }}
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.global.ingress.rewriteTarget.target }}
+  {{- end }}
+spec:
+  rules:
+  - host: {{ .Values.global.ingress.host }}
+    http:
+      paths:
+      {{- if contains "/$2" (toString .Values.global.ingress.rewriteTarget.target) }}
+      - path: {{ .Values.global.ingress.path }}(/|$)(.*)
+      {{- else }}
+      - path: {{ .Values.global.ingress.path }}
+      {{- end }}
+        {{- /* USE WITH API VERSION networking.k8s.io/v1
+        pathType: {{ .Values.global.ingress.Prefix }}
+        COMMENT END */}}
+        backend:
+          serviceName: {{ $parent_chart_name }}
+          servicePort: {{ .Values.server.ports.http }}
+          {{- /* USE WITH API VERSION networking.k8s.io/v1
+          service:
+            name: {{ $parent_chart_name }}
+            port:
+              number: {{ .Values.server.ports.http }}
+          COMMENT END */}}
+{{- end }}
