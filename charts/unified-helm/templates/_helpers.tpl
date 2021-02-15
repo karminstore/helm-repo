@@ -90,6 +90,9 @@ Return containers spec
     valueFrom:
       fieldRef:
         fieldPath: metadata.namespace
+      {{- if $root.Values.global.extraEnvs }}
+{{ toYaml $root.Values.global.extraEnvs | indent 2 }}
+      {{- end}}
       {{- if $root.Values.global.services }}
         {{- range $key, $value := $root.Values.global.services }}
           {{- if eq ( kindOf $value ) "bool" }}
