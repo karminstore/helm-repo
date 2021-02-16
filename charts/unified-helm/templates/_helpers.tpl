@@ -163,8 +163,8 @@ ports:
   protocol: TCP
       {{- end }}
 livenessProbe:
-  failureThreshold: 3
-  initialDelaySeconds: 5
+  failureThreshold: 5
+  initialDelaySeconds: 30
   periodSeconds: 5
   successThreshold: 1
   tcpSocket:
@@ -177,8 +177,8 @@ livenessProbe:
       {{- end }}
   timeoutSeconds: 1
 readinessProbe:
-  failureThreshold: 3
-  initialDelaySeconds: 5
+  failureThreshold: 5
+  initialDelaySeconds: 30
   periodSeconds: 5
   successThreshold: 1
   tcpSocket:
