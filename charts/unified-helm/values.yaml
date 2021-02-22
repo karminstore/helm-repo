@@ -83,7 +83,7 @@ services:
     - url
 
 microservices:
-  customerService: customer-service
+  customerMicroservice: customer-microservice
 
 resources:
   requests:
